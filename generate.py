@@ -52,8 +52,8 @@ Examples:
     parser.add_argument(
         '--cfg', '-c',
         type=float,
-        default=4.0,
-        help='CFG scale (default: 4.0, recommended: 3.5-5.0)'
+        default=1.0,
+        help='CFG scale (default: 1.0, FLUX works best with CFG=1.0)'
     )
 
     parser.add_argument(
