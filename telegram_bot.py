@@ -47,11 +47,11 @@ MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # Default generation settings
-DEFAULT_STEPS = 25
-DEFAULT_CFG = 4.0
+DEFAULT_STEPS = 20
+DEFAULT_CFG = 1.0  # FLUX works best with CFG=1.0, not 3.5-4.0!
 DEFAULT_WIDTH = 1024
 DEFAULT_HEIGHT = 1024
-DEFAULT_NEGATIVE = "blurry, low quality, distorted, ugly, bad anatomy, low res, poorly drawn"
+DEFAULT_NEGATIVE = ""  # FLUX doesn't need negative prompts
 
 # Setup logging
 logging.basicConfig(
@@ -365,10 +365,9 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             filename = f"flux_{user.id}_{timestamp}.png"
             minio_url = await asyncio.to_thread(upload_to_minio, image_data, filename)
 
-        # Send image to user as document (preserves quality, no Telegram compression)
-        await update.message.reply_document(
-            document=BytesIO(image_data),
-            filename="flux_generated.png",
+        # Send image to user as photo (with preview)
+        await update.message.reply_photo(
+            photo=BytesIO(image_data),
             caption=f"✅ Generated!\n\nPrompt: {prompt[:200]}"
         )
 
