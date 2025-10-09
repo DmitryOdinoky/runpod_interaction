@@ -118,8 +118,8 @@ def load_workflow_template() -> dict:
         "31": {
             "inputs": {
                 "seed": 42,
-                "steps": 25,
-                "cfg": 4.0,
+                "steps": 20,
+                "cfg": 3.5,
                 "sampler_name": "euler",
                 "scheduler": "simple",
                 "denoise": 1,
@@ -148,25 +148,25 @@ def modify_workflow(workflow: dict, prompt: str, negative: str = "",
 
     workflow = json.loads(json.dumps(workflow))  # Deep copy
 
-    # Update prompts
+    # Update prompts (node 6 = positive, node 33 = negative)
     workflow["6"]["inputs"]["text"] = prompt
     workflow["33"]["inputs"]["text"] = negative or DEFAULT_NEGATIVE
 
-    # Update sampling parameters
+    # Update sampling parameters (node 31 = KSampler)
     workflow["31"]["inputs"]["seed"] = seed if seed else int(time.time())
     workflow["31"]["inputs"]["steps"] = steps
     workflow["31"]["inputs"]["cfg"] = cfg
 
-    # Update dimensions
+    # Update dimensions (node 27 = EmptySD3LatentImage)
     workflow["27"]["inputs"]["width"] = width
     workflow["27"]["inputs"]["height"] = height
 
     return workflow
 
 
-async def generate_image(prompt: str, negative: str = "", steps: int = DEFAULT_STEPS,
-                        cfg: float = DEFAULT_CFG, width: int = DEFAULT_WIDTH,
-                        height: int = DEFAULT_HEIGHT, seed: int = None) -> dict:
+def generate_image(prompt: str, negative: str = "", steps: int = DEFAULT_STEPS,
+                   cfg: float = DEFAULT_CFG, width: int = DEFAULT_WIDTH,
+                   height: int = DEFAULT_HEIGHT, seed: int = None) -> dict:
     """Generate image via RunPod API."""
     try:
         workflow = load_workflow_template()
@@ -218,7 +218,7 @@ def extract_image_from_response(response: dict) -> bytes:
     return base64.b64decode(img_str)
 
 
-async def upload_to_minio(image_data: bytes, filename: str) -> str:
+def upload_to_minio(image_data: bytes, filename: str) -> str:
     """Upload image to MinIO and return URL."""
     if not minio_client:
         logger.warning("MinIO not available, skipping upload")
@@ -350,6 +350,14 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             await status_msg.edit_text("❌ No image data received")
             return
 
+        # Debug: Save to outputs directory to compare quality
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        debug_path = Path(__file__).parent / "outputs" / f"telegram_bot_{timestamp}.png"
+        debug_path.parent.mkdir(exist_ok=True)
+        with open(debug_path, 'wb') as f:
+            f.write(image_data)
+        logger.info(f"Debug: Saved image to {debug_path}")
+
         # Upload to MinIO (optional)
         minio_url = None
         if minio_client:
@@ -357,9 +365,10 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
             filename = f"flux_{user.id}_{timestamp}.png"
             minio_url = await asyncio.to_thread(upload_to_minio, image_data, filename)
 
-        # Send image to user
-        await update.message.reply_photo(
-            photo=BytesIO(image_data),
+        # Send image to user as document (preserves quality, no Telegram compression)
+        await update.message.reply_document(
+            document=BytesIO(image_data),
+            filename="flux_generated.png",
             caption=f"✅ Generated!\n\nPrompt: {prompt[:200]}"
         )
 
