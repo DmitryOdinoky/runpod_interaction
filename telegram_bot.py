@@ -96,16 +96,20 @@ def load_workflow_template(mode: str = "txt2img") -> dict:
     Args:
         mode: "txt2img" or "img2img"
     """
-    # Load workflow from JSON file to ensure consistency
-    workflow_file = Path(__file__).parent / "flux_workflow_simple.json"
+    # For img2img, always use embedded workflow (JSON file is txt2img only)
+    if mode == "img2img":
+        logger.info("Using embedded img2img workflow")
+    else:
+        # Load txt2img workflow from JSON file
+        workflow_file = Path(__file__).parent / "flux_workflow_simple.json"
 
-    try:
-        with open(workflow_file, 'r') as f:
-            workflow = json.load(f)
-        logger.info(f"Loaded workflow from {workflow_file}")
-        return workflow
-    except Exception as e:
-        logger.error(f"Failed to load workflow from file: {e}, using fallback")
+        try:
+            with open(workflow_file, 'r') as f:
+                workflow = json.load(f)
+            logger.info(f"Loaded workflow from {workflow_file}")
+            return workflow
+        except Exception as e:
+            logger.error(f"Failed to load workflow from file: {e}, using fallback")
 
     # Fallback: embedded workflow (txt2img only)
     if mode == "txt2img":
