@@ -26,7 +26,7 @@ services:
   # Telegram Bot
   telegram_bot:
     # Use pre-built Docker Hub image for Coolify deployment
-    image: dmitryodinoky/telegram-bot-sdxl:latest
+    image: dmitryodinoky/telegram-bot-flux:latest
     container_name: flux_telegram_bot
     restart: unless-stopped
     environment:
