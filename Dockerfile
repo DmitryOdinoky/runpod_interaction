@@ -14,8 +14,9 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application
+# Copy application and workflow files
 COPY telegram_bot.py .
+COPY flux_workflow_simple.json .
 
 # Create output directory
 RUN mkdir -p /app/outputs

@@ -38,15 +38,15 @@ Examples:
     parser.add_argument(
         '--negative', '-n',
         type=str,
-        default='blurry, low quality, distorted, ugly, bad anatomy, low res, poorly drawn',
-        help='Negative prompt (default: "blurry, low quality, distorted, ugly, bad anatomy, low res, poorly drawn")'
+        default='blurry, low quality, distorted, ugly, bad anatomy, low res, poorly drawn, deformed, pixelated, noise, artifacts',
+        help='Negative prompt (default: "blurry, low quality, distorted, ugly, bad anatomy, low res, poorly drawn, deformed, pixelated, noise, artifacts")'
     )
 
     parser.add_argument(
         '--steps', '-s',
         type=int,
-        default=25,
-        help='Number of sampling steps (default: 25, recommended: 20-30)'
+        default=28,
+        help='Number of sampling steps (default: 28, recommended: 25-30 for quality)'
     )
 
     parser.add_argument(
@@ -59,15 +59,15 @@ Examples:
     parser.add_argument(
         '--width', '-w',
         type=int,
-        default=1024,
-        help='Image width (default: 1024)'
+        default=1280,
+        help='Image width (default: 1280)'
     )
 
     parser.add_argument(
         '--height',
         type=int,
-        default=1024,
-        help='Image height (default: 1024)'
+        default=1280,
+        help='Image height (default: 1280)'
     )
 
     parser.add_argument(

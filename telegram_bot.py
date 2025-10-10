@@ -49,11 +49,11 @@ MINIO_USE_SSL = os.getenv("MINIO_USE_SSL", "false").lower() == "true"
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # Default generation settings
-DEFAULT_STEPS = 20
+DEFAULT_STEPS = 28
 DEFAULT_CFG = 1.0  # FLUX works best with CFG=1.0, not 3.5-4.0!
-DEFAULT_WIDTH = 1024
-DEFAULT_HEIGHT = 1024
-DEFAULT_NEGATIVE = ""  # FLUX doesn't need negative prompts
+DEFAULT_WIDTH = 1280
+DEFAULT_HEIGHT = 1280
+DEFAULT_NEGATIVE = "blurry, low quality, distorted, ugly, deformed, pixelated, noise, artifacts"
 DEFAULT_DENOISE = 0.75  # For img2img: 0.5 = subtle, 0.75 = moderate, 0.9 = strong changes
 
 # Setup logging
@@ -91,11 +91,23 @@ def init_minio():
 
 
 def load_workflow_template(mode: str = "txt2img") -> dict:
-    """Load the FLUX workflow template.
+    """Load the FLUX workflow template from JSON file.
 
     Args:
         mode: "txt2img" or "img2img"
     """
+    # Load workflow from JSON file to ensure consistency
+    workflow_file = Path(__file__).parent / "flux_workflow_simple.json"
+
+    try:
+        with open(workflow_file, 'r') as f:
+            workflow = json.load(f)
+        logger.info(f"Loaded workflow from {workflow_file}")
+        return workflow
+    except Exception as e:
+        logger.error(f"Failed to load workflow from file: {e}, using fallback")
+
+    # Fallback: embedded workflow (txt2img only)
     if mode == "txt2img":
         workflow = {
             "6": {
@@ -114,7 +126,7 @@ def load_workflow_template(mode: str = "txt2img") -> dict:
                 "_meta": {"title": "Save Image"}
             },
             "27": {
-                "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
+                "inputs": {"width": 1280, "height": 1280, "batch_size": 1},
                 "class_type": "EmptySD3LatentImage",
                 "_meta": {"title": "EmptySD3LatentImage"}
             },
@@ -126,8 +138,8 @@ def load_workflow_template(mode: str = "txt2img") -> dict:
             "31": {
                 "inputs": {
                     "seed": 42,
-                    "steps": 20,
-                    "cfg": 3.5,
+                    "steps": 28,
+                    "cfg": 1.0,
                     "sampler_name": "euler",
                     "scheduler": "simple",
                     "denoise": 1,
@@ -180,8 +192,8 @@ def load_workflow_template(mode: str = "txt2img") -> dict:
             "31": {
                 "inputs": {
                     "seed": 42,
-                    "steps": 20,
-                    "cfg": 3.5,
+                    "steps": 28,
+                    "cfg": 1.0,
                     "sampler_name": "euler",
                     "scheduler": "simple",
                     "denoise": 0.75,
@@ -202,9 +214,36 @@ def load_workflow_template(mode: str = "txt2img") -> dict:
     return workflow
 
 
+def enhance_prompt_quality(prompt: str) -> str:
+    """Add quality-enhancing keywords to the prompt if not already present.
+
+    Args:
+        prompt: Original user prompt
+
+    Returns:
+        Enhanced prompt with quality keywords
+    """
+    quality_keywords = [
+        "highly detailed", "sharp focus", "professional quality",
+        "8k resolution", "masterpiece", "best quality"
+    ]
+
+    # Check if prompt already has quality keywords
+    prompt_lower = prompt.lower()
+    has_quality_keywords = any(kw.lower() in prompt_lower for kw in quality_keywords)
+
+    # If no quality keywords found, add them
+    if not has_quality_keywords:
+        # Add quality suffix
+        enhanced = f"{prompt}, highly detailed, sharp focus, professional quality, 8k resolution"
+        return enhanced
+
+    return prompt
+
+
 def modify_workflow(workflow: dict, prompt: str, negative: str = "",
-                    steps: int = 25, cfg: float = 4.0,
-                    width: int = 1024, height: int = 1024, seed: int = None,
+                    steps: int = 28, cfg: float = 1.0,
+                    width: int = 1280, height: int = 1280, seed: int = None,
                     denoise: float = 1.0, image_base64: str = None) -> dict:
     """Modify workflow with custom parameters.
 
@@ -276,10 +315,17 @@ def generate_image(prompt: str, negative: str = "", steps: int = DEFAULT_STEPS,
                 denoise=denoise, image_base64=image_filename
             )
         else:
+            # For txt2img, denoise MUST be 1.0 (full denoise)
             workflow = modify_workflow(
                 workflow, prompt, negative, steps, cfg, width, height, seed,
-                denoise=denoise, image_base64=None
+                denoise=1.0, image_base64=None
             )
+
+        # Log the actual workflow parameters being sent
+        logger.info(f"Generating {mode} - Steps: {workflow['31']['inputs']['steps']}, CFG: {workflow['31']['inputs']['cfg']}, Size: {workflow.get('27', {}).get('inputs', {}).get('width', 'N/A')}x{workflow.get('27', {}).get('inputs', {}).get('height', 'N/A')}")
+
+        # Debug: Log full workflow for troubleshooting
+        logger.info(f"Full workflow being sent: {json.dumps(workflow, indent=2)}")
 
         headers = {
             "Content-Type": "application/json",
@@ -534,6 +580,12 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     logger.info(f"Generating image for user {user.id}: {prompt[:50]}...")
 
+    # Enhance prompt with quality keywords
+    enhanced_prompt = enhance_prompt_quality(prompt)
+
+    logger.info(f"Original prompt: {prompt}")
+    logger.info(f"Enhanced prompt: {enhanced_prompt}")
+
     # Send initial response
     status_msg = await update.message.reply_text(
         "🎨 Generating your image...\n"
@@ -545,7 +597,7 @@ async def handle_text_message(update: Update, context: ContextTypes.DEFAULT_TYPE
         # Generate image
         response = await asyncio.to_thread(
             generate_image,
-            prompt=prompt,
+            prompt=enhanced_prompt,
             negative=DEFAULT_NEGATIVE,
             steps=DEFAULT_STEPS,
             cfg=DEFAULT_CFG
@@ -641,6 +693,9 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
     prompt = update.message.caption or "enhance this image, professional quality, highly detailed"
     logger.info(f"Img2img generation for user {user.id}: {prompt[:50]}...")
 
+    # Enhance prompt with quality keywords
+    enhanced_prompt = enhance_prompt_quality(prompt)
+
     # Send initial response
     status_msg = await update.message.reply_text(
         "🎨 Processing your image...\n"
@@ -662,7 +717,7 @@ async def handle_photo_message(update: Update, context: ContextTypes.DEFAULT_TYP
         # Generate image
         response = await asyncio.to_thread(
             generate_image,
-            prompt=prompt,
+            prompt=enhanced_prompt,
             negative=DEFAULT_NEGATIVE,
             steps=DEFAULT_STEPS,
             cfg=DEFAULT_CFG,

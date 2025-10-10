@@ -38,8 +38,8 @@ def load_workflow(workflow_path: str = "flux_workflow_simple.json") -> dict:
 
 
 def modify_workflow_prompt(workflow: dict, positive_prompt: str, negative_prompt: str = "",
-                           seed: int = None, steps: int = 20, cfg: float = 3.5,
-                           width: int = 1024, height: int = 1024) -> dict:
+                           seed: int = None, steps: int = 28, cfg: float = 1.0,
+                           width: int = 1280, height: int = 1280) -> dict:
     """
     Modify the workflow with custom parameters.
 
@@ -209,8 +209,8 @@ def process_response(response: dict) -> list:
     return saved_images
 
 
-def run_test(prompt: str, negative_prompt: str = "", steps: int = 20,
-             cfg: float = 3.5, width: int = 1024, height: int = 1024, seed: int = None):
+def run_test(prompt: str, negative_prompt: str = "", steps: int = 28,
+             cfg: float = 1.0, width: int = 1280, height: int = 1280, seed: int = None):
     """
     Run a complete test: load workflow, submit job, save results.
 
@@ -258,16 +258,16 @@ def run_test(prompt: str, negative_prompt: str = "", steps: int = 20,
 
 if __name__ == "__main__":
     # Test with a sample prompt
-    test_prompt = "a mystical forest with glowing mushrooms and fireflies, magical atmosphere, fantasy art, detailed, vibrant colors"
-    negative_prompt = "blurry, low quality, distorted, ugly"
+    test_prompt = "a mystical forest with glowing mushrooms and fireflies, magical atmosphere, fantasy art, highly detailed, sharp focus, professional quality, 8k resolution, vibrant colors"
+    negative_prompt = "blurry, low quality, distorted, ugly, deformed, pixelated, noise, artifacts"
 
     images = run_test(
         prompt=test_prompt,
         negative_prompt=negative_prompt,
-        steps=20,
-        cfg=3.5,
-        width=1024,
-        height=1024,
+        steps=28,
+        cfg=1.0,
+        width=1280,
+        height=1280,
         seed=42
     )
 

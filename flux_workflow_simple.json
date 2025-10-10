@@ -31,8 +31,8 @@
   },
   "27": {
     "inputs": {
-      "width": 1024,
-      "height": 1024,
+      "width": 1280,
+      "height": 1280,
       "batch_size": 1
     },
     "class_type": "EmptySD3LatentImage",
@@ -52,8 +52,8 @@
   "31": {
     "inputs": {
       "seed": 42,
-      "steps": 20,
-      "cfg": 3.5,
+      "steps": 28,
+      "cfg": 1.0,
       "sampler_name": "euler",
       "scheduler": "simple",
       "denoise": 1,
