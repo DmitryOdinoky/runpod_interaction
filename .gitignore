@@ -45,6 +45,7 @@ batch_outputs/
 
 # Logs
 *.log
+telegram_logs.txt
 
 # Environment variables
 .env
