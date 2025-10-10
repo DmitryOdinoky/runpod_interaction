@@ -1,325 +1,400 @@
-# RunPod ComfyUI Interaction Scripts
+# FLUX Image Generator Telegram Bot
 
-Python scripts for interacting with RunPod ComfyUI endpoints using FLUX.1-dev-fp8 model.
+A production-ready Telegram bot for generating high-quality images using FLUX.1-dev-fp8 model via RunPod serverless ComfyUI endpoints. Features Docker containerization, MinIO object storage, and optimized FLUX parameters.
 
-## Overview
+## 🎨 Features
 
-This repository contains scripts and utilities for generating images using ComfyUI workflows on RunPod serverless infrastructure. It supports both synchronous and asynchronous job submission, batch processing, and flexible workflow customization.
+- **Telegram Bot Interface**: Simple text-to-image generation through Telegram
+- **FLUX.1-dev-fp8 Model**: High-quality image generation with optimized parameters (CFG=1.0)
+- **Docker Deployment**: Production-ready containerized setup
+- **MinIO Storage**: Automatic image backup to S3-compatible storage
+- **Image Preview**: Direct image display in Telegram (not as file attachment)
+- **Error Handling**: Robust error handling with user-friendly messages
+- **Debug Logging**: Local image saving for quality verification
 
-## Features
+## 📋 Prerequisites
 
-- **Simple Test Script**: Quick testing with single prompts
-- **Utility Module**: Reusable classes and functions for RunPod interactions
-- **Batch Processing**: Generate multiple images from a list of prompts
-- **Flexible Workflows**: Easy customization of prompts, dimensions, and sampling parameters
-- **Async Support**: Process multiple images in parallel
-- **Image Handling**: Automatic base64 decoding and file saving
+- Docker and Docker Compose
+- RunPod account with ComfyUI endpoint ([runpod/worker-comfyui:flux1-dev](https://console.runpod.io/hub/runpod-workers/worker-comfyui))
+- Telegram Bot Token (from [@BotFather](https://t.me/botfather))
+- RunPod API Key and Endpoint ID
 
-## Prerequisites
+## 🚀 Quick Start
 
-- Python 3.8+
-- RunPod account with active endpoint
-- RunPod API key and endpoint ID
+### 1. Clone Repository
 
-## Installation
-
-1. Clone the repository:
 ```bash
 git clone git@github.com:DmitryOdinoky/runpod_interaction.git
 cd runpod_interaction
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+### 2. Configure Environment
 
-## Configuration
-
-Update the API credentials in the scripts:
-
-```python
-RUNPOD_API_KEY = "your_api_key_here"
-ENDPOINT_ID = "your_endpoint_id_here"
-```
-
-Or set them as environment variables:
-```bash
-export RUNPOD_API_KEY="your_api_key_here"
-export ENDPOINT_ID="your_endpoint_id_here"
-```
-
-## Files
-
-### Core Files
-
-- **`flux_workflow.json`**: ComfyUI workflow for FLUX.1-dev-fp8 model
-- **`runpod_test.py`**: Simple test script for single image generation
-- **`runpod_utils.py`**: Utility module with helper classes
-- **`batch_generate.py`**: Batch processing script
-- **`requirements.txt`**: Python dependencies
-
-### Output Directories
-
-- **`outputs/`**: Generated images from test script
-- **`batch_outputs/`**: Generated images from batch processing
-
-## Usage
-
-### 1. Simple Test
-
-Generate a single image with a test prompt:
+Create `.env` file:
 
 ```bash
-python runpod_test.py
+# Telegram
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
+
+# RunPod
+RUNPOD_API_KEY=your_runpod_api_key
+RUNPOD_ENDPOINT_ID=your_endpoint_id
+
+# MinIO (optional, uses defaults if not specified)
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET=flux-images
 ```
 
-This will generate an image using the default test prompt and save it to the `outputs/` directory.
-
-### 2. Custom Single Image
-
-Modify `runpod_test.py` or use it as a library:
-
-```python
-from runpod_test import run_test
-
-images = run_test(
-    prompt="a beautiful sunset over the ocean",
-    negative_prompt="blurry, low quality",
-    steps=20,
-    cfg=3.5,
-    width=1024,
-    height=1024,
-    seed=42
-)
-```
-
-### 3. Batch Processing
-
-Generate multiple images from a list of prompts:
+### 3. Start Services
 
 ```bash
-python batch_generate.py
+docker-compose up -d
 ```
 
-Edit the `prompts` list in `batch_generate.py` to customize your batch:
+### 4. Test the Bot
+
+1. Open Telegram and find your bot
+2. Send `/start`
+3. Send a prompt: `a fluffy white dragon floating in soft pastel clouds`
+4. Wait 30-60 seconds for your image!
+
+## 🏗️ Architecture
+
+```
+┌─────────────────┐
+│  Telegram User  │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐      ┌──────────────┐      ┌─────────────┐
+│  Telegram Bot   │─────▶│  RunPod API  │─────▶│  ComfyUI    │
+│   (Docker)      │      │              │      │  FLUX.1-dev │
+└────────┬────────┘      └──────────────┘      └─────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  MinIO Storage  │
+│   (Docker)      │
+└─────────────────┘
+```
+
+## 🐳 Docker Deployment
+
+### Local Development
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f telegram_bot
+
+# Restart after code changes
+docker-compose up -d --build telegram_bot
+
+# Stop services
+docker-compose down
+```
+
+### Production Deployment
+
+#### Option 1: VPS/Cloud Server
+
+1. **Setup Server** (Ubuntu/Debian):
+```bash
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Install Docker Compose
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
+```
+
+2. **Deploy Application**:
+```bash
+# Clone repository
+git clone git@github.com:DmitryOdinoky/runpod_interaction.git
+cd runpod_interaction
+
+# Configure environment
+nano .env  # Add your credentials
+
+# Start services
+docker-compose up -d
+
+# Enable auto-restart
+docker-compose restart telegram_bot
+```
+
+3. **Configure Firewall** (optional, MinIO console access):
+```bash
+sudo ufw allow 9001/tcp  # MinIO console
+```
+
+4. **Monitor Logs**:
+```bash
+# Follow bot logs
+docker-compose logs -f telegram_bot
+
+# Check container status
+docker-compose ps
+
+# View resource usage
+docker stats
+```
+
+#### Option 2: Cloud Container Services
+
+**AWS ECS / Google Cloud Run / Azure Container Instances:**
+
+1. Build and push image:
+```bash
+# Build image
+docker build -t flux-telegram-bot .
+
+# Tag for registry
+docker tag flux-telegram-bot:latest your-registry/flux-telegram-bot:latest
+
+# Push to registry
+docker push your-registry/flux-telegram-bot:latest
+```
+
+2. Deploy with environment variables:
+```
+TELEGRAM_BOT_TOKEN=...
+RUNPOD_API_KEY=...
+RUNPOD_ENDPOINT_ID=...
+MINIO_ENDPOINT=minio:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+```
+
+#### Option 3: Docker Swarm / Kubernetes
+
+See `docker-compose.yml` for service configuration. Key points:
+- Bot container depends on MinIO health check
+- MinIO uses persistent volume for data
+- Logs limited to 10MB × 3 files
+- Auto-restart policy: `unless-stopped`
+
+## ⚙️ Configuration
+
+### Bot Settings
+
+Edit `telegram_bot.py` constants:
 
 ```python
-prompts = [
-    "your first prompt",
-    "your second prompt",
-    "your third prompt"
-]
+# Default generation settings (optimized for FLUX)
+DEFAULT_STEPS = 20          # 15-30 recommended
+DEFAULT_CFG = 1.0           # FLUX works best with 1.0!
+DEFAULT_WIDTH = 1024        # 512-2048
+DEFAULT_HEIGHT = 1024       # 512-2048
+DEFAULT_NEGATIVE = ""       # FLUX doesn't need negative prompts
 ```
 
-### 4. Using the Utility Module
+### MinIO Settings
 
-For advanced usage, import the utility classes:
+Access MinIO console at `http://localhost:9001` (or `http://your-server-ip:9001`):
+- **Username**: `minioadmin`
+- **Password**: `minioadmin`
 
-```python
-from runpod_utils import RunPodClient, WorkflowBuilder, ImageHandler
+Browse uploaded images in the `flux-images` bucket.
 
-# Initialize client
-client = RunPodClient(
-    api_key="your_api_key",
-    endpoint_id="your_endpoint_id"
-)
+## 🤖 Bot Commands
 
-# Load and modify workflow
-workflow = WorkflowBuilder.load_workflow("flux_workflow.json")
-WorkflowBuilder.set_prompt(workflow, "your amazing prompt")
-WorkflowBuilder.set_sampler_params(workflow, steps=25, cfg=4.0)
-WorkflowBuilder.set_dimensions(workflow, width=1280, height=720)
+- `/start` - Welcome message and instructions
+- `/help` - Detailed usage guide
+- `/settings` - View current generation settings
+- **Any text** - Generate image from prompt
 
-# Submit job synchronously
-response = client.submit_sync(workflow)
+## 📝 Example Prompts
 
-# Extract and save images
-images = ImageHandler.extract_images_from_response(response)
-for idx, img_data in enumerate(images):
-    ImageHandler.save_base64_image(img_data, f"output_{idx}.png")
+```
+a beautiful sunset over mountains, professional photography, 8k
+cyberpunk city at night, neon lights, highly detailed
+portrait of a cat, professional photography, sharp focus
+fantasy dragon, detailed scales, epic, concept art
+fluffy white kitten floating in soft pastel clouds, dreamy atmosphere
 ```
 
-### 5. Async Processing
+## 🔧 Troubleshooting
 
-For parallel processing of multiple images:
+### Bot Not Responding
 
-```python
-from runpod_utils import RunPodClient, WorkflowBuilder
+```bash
+# Check bot status
+docker-compose ps
 
-client = RunPodClient(api_key="...", endpoint_id="...")
+# View recent logs
+docker-compose logs --tail=50 telegram_bot
 
-# Submit multiple jobs
-job_ids = []
-for prompt in my_prompts:
-    workflow = WorkflowBuilder.load_workflow("flux_workflow.json")
-    WorkflowBuilder.set_prompt(workflow, prompt)
-    job_id = client.submit_async(workflow)
-    job_ids.append(job_id)
-
-# Wait for completion
-for job_id in job_ids:
-    response = client.wait_for_completion(job_id)
-    # Process response...
+# Restart bot
+docker-compose restart telegram_bot
 ```
 
-## Workflow Customization
+### MinIO Connection Issues
 
-The FLUX workflow supports the following parameters:
+```bash
+# Check MinIO status
+docker-compose ps minio
 
-### Prompts
-- **Positive prompt**: Description of desired image
-- **Negative prompt**: What to avoid in the image
+# Check MinIO health
+docker-compose logs minio
 
-### Sampling Parameters
-- **Steps**: 15-30 (default: 20)
-- **CFG Scale**: 1.0-7.0 (default: 3.5)
-- **Seed**: Any integer (None for random)
-- **Sampler**: euler (default)
-- **Scheduler**: simple (default)
-
-### Image Dimensions
-- **Width**: 512-2048 (default: 1024)
-- **Height**: 512-2048 (default: 1024)
-- Recommended: multiples of 64
-
-### Model Components
-- **Model**: flux1-dev-fp8.safetensors
-- **VAE**: ae.sft
-- **CLIP**: t5xxl_fp8_e4m3fn.safetensors, clip_l.safetensors
-
-## API Classes
-
-### `RunPodClient`
-
-Main client for API interactions:
-
-```python
-client = RunPodClient(api_key, endpoint_id)
-
-# Synchronous submission (waits for completion)
-response = client.submit_sync(workflow)
-
-# Asynchronous submission (returns job ID)
-job_id = client.submit_async(workflow)
-status = client.check_status(job_id)
-final = client.wait_for_completion(job_id)
+# Restart MinIO
+docker-compose restart minio
 ```
 
-### `WorkflowBuilder`
+### Image Generation Errors
 
-Helper for workflow manipulation:
-
-```python
-# Load/save workflows
-workflow = WorkflowBuilder.load_workflow("path.json")
-WorkflowBuilder.save_workflow(workflow, "output.json")
-
-# Modify workflow
-WorkflowBuilder.set_prompt(workflow, positive, negative)
-WorkflowBuilder.set_sampler_params(workflow, seed, steps, cfg)
-WorkflowBuilder.set_dimensions(workflow, width, height)
-```
-
-### `ImageHandler`
-
-Image processing utilities:
-
-```python
-# Decode base64
-image_bytes = ImageHandler.decode_base64_image(base64_string)
-
-# Save images
-path = ImageHandler.save_image(image_bytes, "output.png")
-path = ImageHandler.save_base64_image(base64_string, "output.png")
-
-# Extract from response
-images = ImageHandler.extract_images_from_response(response)
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Timeout errors**: Increase timeout in `submit_sync()` or use async mode
-2. **Rate limits**: Use sequential processing or add delays between requests
-3. **Out of memory**: Reduce image dimensions or batch size
-4. **Invalid workflow**: Verify workflow JSON structure and node IDs
+1. **Timeout**: RunPod endpoint might be cold-starting (first request takes longer)
+2. **Blurry Images**: Verify CFG=1.0 (FLUX-specific requirement)
+3. **API Errors**: Check RunPod API key and endpoint ID in `.env`
 
 ### Debug Mode
 
-Enable detailed logging:
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
+Check saved images in the container:
+```bash
+docker exec flux_telegram_bot ls -la /app/outputs/
+docker cp flux_telegram_bot:/app/outputs/. ./debug_outputs/
 ```
 
-## Examples
+## 📊 Performance
 
-### Generate with Custom Seed
+- **Generation Time**: 30-60 seconds per image
+- **Image Quality**: 1024×1024 at CFG=1.0 (optimal for FLUX)
+- **Storage**: Images backed up to MinIO automatically
+- **Concurrency**: Sequential processing (one user at a time)
 
-```python
-images = run_test(
-    prompt="a mystical forest",
-    seed=12345,  # Reproducible results
-    steps=25,
-    cfg=4.0
-)
+## 🔒 Security Best Practices
+
+1. **Change MinIO Credentials**:
+```bash
+# In .env file
+MINIO_ACCESS_KEY=your_secure_access_key
+MINIO_SECRET_KEY=your_secure_secret_key_min_8_chars
 ```
 
-### Landscape vs Portrait
-
-```python
-# Landscape
-run_test(prompt="...", width=1280, height=720)
-
-# Portrait
-run_test(prompt="...", width=720, height=1280)
+2. **Protect .env File**:
+```bash
+chmod 600 .env
 ```
 
-### High Quality Settings
+3. **Use Secrets in Production**:
+- AWS: AWS Secrets Manager
+- Google Cloud: Secret Manager
+- Kubernetes: Secrets
 
-```python
-images = run_test(
-    prompt="masterpiece, best quality, ultra detailed, 8k",
-    negative_prompt="low quality, blurry, distorted, bad anatomy",
-    steps=30,
-    cfg=5.0,
-    width=1536,
-    height=1536
-)
+4. **Restrict MinIO Access**:
+- Don't expose port 9001 publicly
+- Use firewall rules
+- Set up SSL/TLS for production
+
+## 📂 Project Structure
+
+```
+runpod_interaction/
+├── telegram_bot.py           # Main bot application
+├── generate.py               # CLI image generator
+├── runpod_test.py           # Test script
+├── requirements.txt          # Python dependencies
+├── Dockerfile               # Bot container definition
+├── docker-compose.yml       # Multi-container orchestration
+├── .env                     # Environment variables (create this)
+├── QUICKSTART.md           # Quick start guide
+└── outputs/                # Local debug images
 ```
 
-## Performance Tips
+## 🛠️ Development
 
-1. **Async vs Sync**: Use async for multiple images, sync for single images
-2. **Batch Size**: Process 3-5 images in parallel to balance speed and reliability
-3. **Dimensions**: Larger images take longer (1024x1024 is a good default)
-4. **Steps**: 20-25 steps usually sufficient, more doesn't always mean better
-5. **CFG Scale**: 3.0-4.0 works well for FLUX, higher can oversaturate
+### Local Testing (Without Docker)
 
-## License
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+export TELEGRAM_BOT_TOKEN=...
+export RUNPOD_API_KEY=...
+export RUNPOD_ENDPOINT_ID=...
+
+# Run bot
+python telegram_bot.py
+```
+
+### CLI Image Generation
+
+```bash
+# Simple generation
+python generate.py "your prompt here"
+
+# With custom parameters
+python generate.py "your prompt" --steps 25 --cfg 1.0 --width 1280 --height 720
+```
+
+## 🔄 Updates and Maintenance
+
+### Update Bot Code
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Rebuild and restart
+docker-compose up -d --build
+```
+
+### Backup MinIO Data
+
+```bash
+# Backup MinIO volume
+docker run --rm -v runpod_interaction_minio_data:/data -v $(pwd):/backup \
+  ubuntu tar czf /backup/minio-backup.tar.gz /data
+```
+
+### View Logs
+
+```bash
+# Real-time logs
+docker-compose logs -f
+
+# Last 100 lines
+docker-compose logs --tail=100
+
+# Specific service
+docker-compose logs telegram_bot
+```
+
+## 🎯 FLUX Model Tips
+
+**Critical**: FLUX.1-dev works differently from Stable Diffusion:
+- ✅ Use **CFG=1.0** (not 3.5-4.0)
+- ✅ Use **steps=20** (not 25-30)
+- ✅ **No negative prompts** needed
+- ✅ Use `EmptySD3LatentImage` node
+
+These settings are already configured in the bot for optimal results.
+
+## 📄 License
 
 This project is provided as-is for use with RunPod services.
 
-## Support
+## 🤝 Support
 
-For issues with:
-- **Scripts**: Open an issue in this repository
-- **RunPod API**: Contact RunPod support
-- **ComfyUI**: Check ComfyUI documentation
+- **Bot Issues**: Open an issue in this repository
+- **RunPod API**: [RunPod Support](https://docs.runpod.io/)
+- **Telegram Bot API**: [Official Docs](https://core.telegram.org/bots/api)
 
-## Version History
+## 🙏 Credits
 
-- **v1.0**: Initial release with FLUX.1-dev-fp8 support
-  - Single image generation
-  - Batch processing
-  - Sync/async modes
-  - Comprehensive utilities
-
-## Credits
-
-- **ComfyUI**: Stable Diffusion workflow interface
+- **FLUX.1**: Advanced image generation model by Black Forest Labs
 - **RunPod**: Serverless GPU infrastructure
-- **FLUX.1**: Advanced image generation model
+- **ComfyUI**: Node-based UI for Stable Diffusion
+- **MinIO**: High-performance S3-compatible object storage
