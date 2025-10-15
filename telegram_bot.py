@@ -359,7 +359,11 @@ def generate_image(prompt: str, negative: str = "", steps: int = DEFAULT_STEPS,
 
 def extract_image_from_response(response: dict) -> bytes:
     """Extract base64 image data from RunPod response."""
+    logger.info(f"RunPod response status: {response.get('status')}")
+    logger.info(f"RunPod response keys: {list(response.keys())}")
+
     if response.get("status") != "COMPLETED":
+        logger.error(f"Status not COMPLETED. Full response: {json.dumps(response, indent=2)[:500]}")
         return None
 
     output = response.get("output", {})
